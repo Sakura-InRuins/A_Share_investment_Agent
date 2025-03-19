@@ -1,3 +1,7 @@
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)) + '/../')
+
 from datetime import datetime, timedelta
 import argparse
 from src.agents.valuation import valuation_agent
@@ -17,7 +21,7 @@ import akshare as ak
 import pandas as pd
 
 from utils.output_logger import OutputLogger
-import sys
+# import sys
 
 # Initialize output logging
 # This will create a timestamped log file in the logs directory
