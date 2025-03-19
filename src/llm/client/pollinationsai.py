@@ -2,8 +2,8 @@
 # /usr/bin/python
 '''
 -------------------------------------------------------------------------
-@File Name      :  localai.py
-@Run Script     :  python3  localai.py
+@File Name      :  pollinationsai.py
+@Run Script     :  python3  pollinationsai.py
 @Envs           :  pip install httpx, python-dotenv
 -------------------------------------------------------------------------
 @Author         :  yaozhangrui, 18860016897
@@ -18,7 +18,11 @@
 '''
 __author__ = 'yaozhangrui'
 
+import sys
+import os
 
+# 添加项目根目录到 Python 路径
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import os
 import json
 import httpx
@@ -30,20 +34,16 @@ from dotenv import load_dotenv
 from src.llm.client.base import BaseClient
 from src.llm.types import NotGiven, NOT_GIVEN
 
-class LocalAIClient(BaseClient):
-    def __init__(self, api_key: str = None, url: str = None):
-        if not os.getenv("LOCALAI_URL"):
+class PollinationsAIClient(BaseClient):
+    def __init__(self, url: str = None):
+        if not os.getenv("POLLINATIONS_URL"):
             load_dotenv()
 
-        self.api_key = api_key or os.getenv("LOCALAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("API key is required. Please provide it or set it in the environment variables.")
-
-        self.url = url or os.getenv("LOCALAI_URL")
+        self.url = url or os.getenv("POLLINATIONS_URL")
         if not self.url:
-            raise ValueError("LOCALAI_URL is required. Please provide it or set it in the environment variables.")
-        
-        self.default_model = os.getenv("LOCALAI_API_MODEL", "Qwen72B")
+            self.url = "https://text.pollinations.ai/"
+
+        self.default_model = os.getenv("POLLINATIONS_API_MODEL", "openai")
 
         # print(self.url, self.default_model)
     
@@ -54,34 +54,27 @@ class LocalAIClient(BaseClient):
         if model == NOT_GIVEN:
             model = self.default_model
         data = {
-            "model": model,
             "messages": messages,
-            "temperature": 0.7,
-            "presence_penalty": 1.1,
-            "top_p": 0.8,
-            "stream": False,
+            "model": model,
+            "seed": 128,
         }
-        authorization = os.getenv("LOCALAI_AUTHORIZATION") or self.api_key
-        headers = { "Content-Type": "application/json", "Authorization": "Bearer " + authorization }
         # print(data)
-        with httpx.Client(timeout=120) as client:
-            response = client.post(self.url, headers=headers, data=json.dumps(data))
+        headers = { "Content-Type": "application/json", "Connection": "keep-alive", "Accept": "*/*" }
+        with httpx.Client(timeout=500) as client:
+            response = client.post(self.url, data=json.dumps(data), headers=headers)
             
         # response = requests.post(self.url, headers=headers, data=json.dumps(data))
             response.raise_for_status()
-            res = response.json()
-            content = res['choices'][0]['message']["content"]
+            content = response.text
                 
         return content
 
 
 if __name__ == "__main__":
-    api_key = "sk-kQ1gi5mWXUEoEbUMI9j6s1HaK7UZ1dLXO9s2NjXsosKnOOBy"
-    url = "http://58.22.100.210:7000/v1/chat/completions"
     messages = [
         {"role": "system", "content": "你是一个夸夸助手,你会各种夸奖技巧,能提供十足的情绪价值,你的任务就是安抚我的情绪,给我提供十足的情绪价值."},
-        {"role": "user", "content": "我手机丢了"},
+        {"role": "user", "content": "我被解雇了"},
     ]
-    lc = LocalAIClient(api_key=api_key, url=url)
-    model = "Qwen72B"
+    lc = PollinationsAIClient()
+    model = "openai"
     print(lc.completions(messages, model))
